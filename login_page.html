@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-50">
+  <!-- Notification Popup -->
+  <div id="pop-up" class="fixed top-0 left-1/2 -translate-x-1/2 transform bg-red-500 text-white px-6 py-3 rounded-b-lg shadow-lg z-50 opacity-0 transition-all duration-300 ease-in-out" data-position="up">
+    <h2 class="text-sm font-medium">Sample Popup</h2>
+  </div>
+
+<div class="flex min-h-full flex-col justify-center items-center py-12 sm:px-6 lg:px-8">
+  <div class="sm:mx-auto sm:w-full sm:max-w-md">
+    <img class="mx-auto h-10 w-auto" src="https://tailwindui.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600" alt="Your Company">
+    <h2 class="mt-6 text-center text-2xl font-bold tracking-tight text-gray-900 leading-9">Placement Upload</h2>
+  </div>
+
+  <div class="mt-10 sm:mx-auto sm:w-full" style="max-width: 480px;">
+    <div class="bg-white px-6 py-12 shadow-sm sm:rounded-lg sm:px-12">
+
+      <div>
+        <div class="relative">
+          <div class="absolute inset-0 flex items-center" aria-hidden="true">
+            <div class="w-full border-t border-gray-200"></div>
+          </div>
+          <div class="relative flex justify-center text-sm font-medium leading-6">
+            <span class="bg-white px-6 text-gray-900">Sign in Using SRM Mail</span>
+          </div>
+        </div>
+
+        <div class="mt-6 flex flex-col items-center space-y-4">
+          <h3 class="text-gray-600 text-center font-medium">Continue with Google (Official SRM Mail)</h3>
+          <!-- Google Identity Services -->
+          <div id="g_id_onload"
+               data-client_id="448262167318-flij4ojth2s8f09drssule82i4fv1o4m.apps.googleusercontent.com"
+               data-callback="handleCredentialResponse"
+               data-auto_prompt="false">
+          </div>
+          <div class="g_id_signin"
+               data-type="standard"
+               data-size="large"
+               data-theme="filled_blue"
+               data-text="continue_with"
+               data-shape="pill"
+               data-logo_alignment="center">
+          </div>
+          <!-- Fallback button if GIS fails to load -->
+          <button id="fallback-google-btn" class="hidden w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-600" disabled>
+            <span>Loading Google...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+  <!-- Scripts -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.2/dist/umd/supabase.min.js"></script>
+  <script src="login.js"></script>
+</body>
+</html>

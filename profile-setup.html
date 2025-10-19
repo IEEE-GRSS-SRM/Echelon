@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-white">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile Setup • Placement Upload</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.2/dist/umd/supabase.min.js"></script>
+  <style>
+    /* Skeleton shimmer */
+    .shimmer { position: relative; overflow: hidden; }
+    .shimmer::before { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent); animation: shimmer 1.6s infinite; }
+    @keyframes shimmer { 100% { transform: translateX(100%); } }
+    
+    /* Mobile optimizations */
+    @media (max-width: 640px) {
+      /* Ensure content doesn't overflow on very small screens */
+      * { word-wrap: break-word; }
+      
+      /* Improve touch targets on mobile */
+      button, select, input { min-height: 44px; }
+      
+      /* Better text scaling for very small screens */
+      @media (max-width: 375px) {
+        html { font-size: 14px; }
+      }
+      
+      /* Mobile vertical centering when content is shorter than viewport */
+      body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 100vh;
+        min-height: 100dvh; /* Use dynamic viewport height on supported devices */
+      }
+    }
+    
+    /* Prevent horizontal scrolling */
+    body, html { 
+      overflow-x: hidden; 
+      max-width: 100vw;
+    }
+    
+    /* Ensure inputs don't cause zoom on iOS */
+    input[type="text"], select { 
+      font-size: 16px; 
+    }
+    @media (max-width: 640px) {
+      input[type="text"], select { 
+        font-size: 16px !important; 
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-sky-50 p-3 sm:p-4 lg:p-6 sm:flex sm:items-center sm:justify-center overflow-x-hidden">
+  <div id="pop-up" class="fixed top-0 left-1/2 -translate-x-1/2 transform bg-indigo-600 text-white px-6 py-3 rounded-b-lg shadow-lg z-50 opacity-0 transition-all duration-300 ease-in-out" data-position="up">
+    <h2 class="text-sm font-medium">Notification</h2>
+  </div>
+
+  <div class="w-full max-w-sm sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+    <div class="bg-white/80 backdrop-blur rounded-xl sm:rounded-2xl shadow-xl border border-indigo-100 p-4 sm:p-5 lg:p-6 xl:p-8 flex flex-col order-1 lg:order-none">
+      <div class="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6 w-full">
+        <img id="user-picture" class="size-10 sm:size-12 lg:size-16 rounded-full shadow ring-2 ring-indigo-100 object-cover bg-gray-100 flex-shrink-0" alt="User Avatar" />
+        <div class="min-w-0 flex-1 overflow-hidden">
+          <p id="user-name" class="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 truncate leading-tight">User</p>
+          <p id="user-email" class="text-xs sm:text-sm text-gray-500 truncate leading-tight">email</p>
+        </div>
+      </div>
+  <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-gray-900 mb-2 leading-tight">Profile Setup</h1>
+  <p class="text-sm lg:text-base text-gray-600 mb-4 sm:mb-6 leading-relaxed">Welcome to your profile dashboard. Complete your setup to get started with the placement portal.</p>
+
+      <div class="space-y-4 flex-1" id="admin-interaction-area">
+        <!-- Skeleton Placeholder -->
+        <div id="admin-skeleton" class="space-y-4">
+          <div class="h-4 bg-gray-200 rounded shimmer"></div>
+          <div class="h-10 bg-gray-200 rounded shimmer"></div>
+          <div class="h-10 bg-gray-200 rounded shimmer"></div>
+          <div class="h-10 bg-gray-200 rounded shimmer"></div>
+        </div>
+        <!-- Actual Controls -->
+        <div id="search-wrapper" class="hidden">
+          <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Search Admin</label>
+          <div class="relative">
+            <input id="admin-search" type="text" placeholder="Type to filter admin emails..." class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm px-3 py-2.5 pr-10 placeholder:text-gray-400 min-w-0" aria-label="Search admin by email" />
+            <svg class="absolute right-3 top-2.5 size-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"/></svg>
+          </div>
+        </div>
+        <div id="select-wrapper" class="hidden">
+          <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Select Admin</label>
+            <select id="admin-select" class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm px-3 py-2.5 bg-white truncate min-w-0" aria-label="Choose an admin"></select>
+            <p id="admin-empty" class="hidden mt-2 text-xs text-red-600">No admins available. Please try again later.</p>
+        </div>
+        <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-3 sm:p-4 text-xs sm:text-sm text-indigo-700 leading-relaxed hidden" id="tip-box">
+          <p class="break-words"><strong>Tip:</strong> Your admin is your faculty advisor.</p>
+        </div>
+      </div>
+
+      <div class="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <button id="logout-btn" class="w-full inline-flex justify-center items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors">Logout</button>
+        <button id="continue-btn" class="w-full inline-flex justify-center items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled>
+          <span id="continue-spinner" class="hidden size-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+          <span id="continue-text">Continue</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-4 sm:gap-6 order-2 lg:order-none">
+      <div class="bg-white/80 backdrop-blur rounded-xl sm:rounded-2xl border border-indigo-100 shadow p-4 sm:p-5 lg:p-6 flex flex-col">
+        <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 sm:mb-4">Progress</h2>
+        <div class="space-y-3 sm:space-y-4" id="progress-placeholder">
+          <div class="flex items-center justify-between text-xs sm:text-sm text-gray-600"><span class="truncate pr-2">Profile Link</span><span id="profile-status" class="font-medium text-amber-600 flex-shrink-0">Pending</span></div>
+          <div class="flex items-center justify-between text-xs sm:text-sm text-gray-600"><span class="truncate pr-2">Admin Assignment</span><span id="admin-status" class="font-medium text-amber-600 flex-shrink-0">Pending</span></div>
+          <div class="flex items-center justify-between text-xs sm:text-sm text-gray-600"><span class="truncate pr-2">Uploads Started</span><span id="uploads-status" class="font-medium text-gray-400 flex-shrink-0">–</span></div>
+        </div>
+        <div class="mt-4 sm:mt-6">
+          <div class="h-2 rounded-full bg-gray-100 overflow-hidden">
+            <div id="progress-bar" class="h-full w-0 bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all duration-500"></div>
+          </div>
+          <p id="progress-text" class="mt-2 text-xs sm:text-sm font-medium text-indigo-600">0% Complete</p>
+        </div>
+        <p class="mt-4 sm:mt-6 text-xs sm:text-sm text-gray-500 leading-relaxed">Your admin dashboard provides tools to review student submissions, track progress, and manage evaluations efficiently.</p>
+      </div>
+      <div class="bg-gradient-to-br from-indigo-600 to-indigo-500 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-5 lg:p-6 text-white flex-1 min-h-[200px] sm:min-h-[240px] lg:min-h-[280px] flex flex-col justify-center">
+        <h2 class="text-sm font-semibold uppercase tracking-wide mb-3 sm:mb-4">Admin Responsibilities</h2>
+        <p class="text-sm sm:text-base leading-relaxed opacity-90">Review student submissions, provide constructive feedback, track evaluation progress, and ensure quality standards are maintained throughout the placement process.</p>
+        <div class="mt-4 sm:mt-6 flex items-center gap-2 text-indigo-200">
+          <svg class="size-5 opacity-80" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.623 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+          </svg>
+          <span class="text-xs sm:text-sm font-medium opacity-90">Quality Assurance & Evaluation</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="profile-setup.js"></script>
+</body>
+</html>

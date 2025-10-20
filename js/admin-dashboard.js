@@ -93,7 +93,7 @@ function processToastQueue(){ const stack=document.getElementById('toast-stack')
 function renderToast(toast, stack){ activeToasts.push(toast); const div=document.createElement('div'); const color=toast.type==='error'? 'text-red-600 border-red-200 bg-red-50': toast.type==='success'? 'text-green-600 border-green-200 bg-green-50': toast.type==='warn'? 'text-yellow-700 border-yellow-200 bg-yellow-50':'text-indigo-600 border-indigo-200 bg-indigo-50'; div.className='pointer-events-auto w-full rounded-lg shadow ring-1 ring-black/10 backdrop-blur bg-white/90 dark:bg-gray-800/90 flex items-start gap-3 px-4 py-3 animate-[fadeIn_.25s_ease]'; div.innerHTML=`<div class="flex-1 text-sm font-medium ${color}">${toast.message}</div><button class="shrink-0 text-gray-400 hover:text-gray-600" aria-label="Close">&times;</button>`; const closeBtn=div.querySelector('button'); const remove=()=>dismissToast(toast.id,div); closeBtn.addEventListener('click',remove); stack.appendChild(div); setTimeout(remove, toast.options.ttl||3500); }
 function dismissToast(id, el){ activeToasts=activeToasts.filter(t=>t.id!==id); if(el && el.parentElement){ el.style.opacity='0'; el.style.transform='translateY(-4px)'; setTimeout(()=>{el.remove(); processToastQueue();},180);} else processToastQueue(); }
 
-function ensureAuth(){ if(!adminId){ window.location.href='login_page.html'; } }
+function ensureAuth(){ if(!adminId){ window.location.href='../html/login_page.html'; } }
 
 function renderSidebar(){
   const fragment = document.createDocumentFragment();
@@ -431,9 +431,9 @@ if (openMobileNavBtn){ openMobileNavBtn.addEventListener('click', ()=>toggleMobi
 if (closeMobileNavBackdrop){ closeMobileNavBackdrop.addEventListener('click', ()=>toggleMobileDrawer(false)); }
 if (closeMobileNavBtn){ closeMobileNavBtn.addEventListener('click', ()=>toggleMobileDrawer(false)); }
 
-logoutBtn.addEventListener('click',()=>{ localStorage.clear(); window.location.href='login_page.html'; });
-if (logoutBtnMobile){ logoutBtnMobile.addEventListener('click',()=>{ localStorage.clear(); window.location.href='login_page.html'; }); }
-document.getElementById('goto-profile').addEventListener('click',()=>{window.location.href='profile-setup.html';});
+logoutBtn.addEventListener('click',()=>{ localStorage.clear(); window.location.href='../html/login_page.html'; });
+if (logoutBtnMobile){ logoutBtnMobile.addEventListener('click',()=>{ localStorage.clear(); window.location.href='../html/login_page.html'; }); }
+document.getElementById('goto-profile').addEventListener('click',()=>{window.location.href='../html/profile-setup.html';});
 
 async function init(){
   ensureAuth();

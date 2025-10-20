@@ -40,7 +40,7 @@ function notify(msg,type='info') {
   setTimeout(()=>{popup.setAttribute('data-position','up'); popup.style.opacity='0';},2800);
 }
 
-function ensureAuth(){ if(!userId){ window.location.href='login_page.html'; }}
+function ensureAuth(){ if(!userId){ window.location.href='../html/login_page.html'; }}
 
 function populateUserCard(){
   userNameEl.textContent = userName || 'User';
@@ -150,7 +150,7 @@ async function handleContinue(){
     adminStatus.textContent = 'Assigned';
     adminStatus.className='font-medium text-green-600';
     updateProgress();
-    setTimeout(()=>{ window.location.href='student-dashboard.html'; },600);
+    setTimeout(()=>{ window.location.href='../html/student-dashboard.html'; },600);
   } finally {
     continueSpinner.classList.add('hidden');
     continueText.textContent='Continue';
@@ -159,7 +159,7 @@ async function handleContinue(){
 }
 
 continueBtn.addEventListener('click', handleContinue);
-logoutBtn.addEventListener('click', ()=>{ localStorage.clear(); window.location.href='login_page.html'; });
+logoutBtn.addEventListener('click', ()=>{ localStorage.clear(); window.location.href='../html/login_page.html'; });
 
 async function checkExisting(){
   const { data, error } = await supabaseClient
@@ -281,7 +281,7 @@ async function init(){
     progressBar.style.width='100%'; progressText.textContent='Admin Profile Ready';
     continueBtn.disabled=false;
     continueBtn.textContent='Go to Dashboard';
-    continueBtn.addEventListener('click', ()=>{ window.location.href='admin-dashboard.html'; });
+    continueBtn.addEventListener('click', ()=>{ window.location.href='../html/admin-dashboard.html'; });
     
     return;
   }

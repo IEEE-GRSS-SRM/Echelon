@@ -198,7 +198,7 @@ function dismissToast(id, el){
 
 function ensureAuth() {
   if (!userId) {
-    window.location.href = 'login_page.html';
+    window.location.href = '../html/login_page.html';
   }
 }
 
@@ -473,10 +473,10 @@ linkSubmit.addEventListener('click', async ()=>{
   await loadStats();
 });
 
-logoutBtn.addEventListener('click', ()=>{ localStorage.clear(); window.location.href='login_page.html'; });
-if (logoutBtnMobile){ logoutBtnMobile.addEventListener('click', ()=>{ localStorage.clear(); window.location.href='login_page.html'; }); }
+logoutBtn.addEventListener('click', ()=>{ localStorage.clear(); window.location.href='../html/login_page.html'; });
+if (logoutBtnMobile){ logoutBtnMobile.addEventListener('click', ()=>{ localStorage.clear(); window.location.href='../html/login_page.html'; }); }
 
-document.getElementById('goto-profile').addEventListener('click',()=>{window.location.href='profile-setup.html';});
+document.getElementById('goto-profile').addEventListener('click',()=>{window.location.href='../html/profile-setup.html';});
 
 async function init(){
   ensureAuth();

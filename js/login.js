@@ -63,7 +63,7 @@ window.handleCredentialResponse = async function(response) {
 
 		if (adminData) {
 			localStorage.setItem('userId', adminData.id);
-			window.location.href = 'admin-dashboard.html';
+			window.location.href = '../html/admin-dashboard.html';
 			return;
 		}
 
@@ -110,7 +110,7 @@ window.handleCredentialResponse = async function(response) {
 
 			popUpNotification('Welcome! Redirecting...', 'success');
 			setTimeout(() => {
-				window.location.href = 'profile-setup.html';
+				window.location.href = '../html/profile-setup.html';
 			}, 600);
 			return;
 		}
@@ -119,7 +119,7 @@ window.handleCredentialResponse = async function(response) {
 		localStorage.setItem('userId', userId);
 		popUpNotification('Login successful', 'success');
 		setTimeout(() => {
-			window.location.href = 'student-dashboard.html';
+			window.location.href = '../html/student-dashboard.html';
 		}, 400);
 	} catch (err) {
 		console.error('Unexpected login error', err);

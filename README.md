@@ -6,3 +6,6 @@ The source code uses tailwind css through cdn presets, you can look throught it 
 
 ## Supabase DB
 You can access the supabase project [here.](https://supabase.com/dashboard/project/asccuwumidjqcwdcmsrp)
+
+The schema:
+![Supabase Schema](https://github.com/IEEE-GRSS-SRM/Echelon/blob/main/readme_stuff/supabase-schema-asccuwumidjqcwdcmsrp.png)

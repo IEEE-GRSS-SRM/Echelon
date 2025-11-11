@@ -1,10 +1,7 @@
 // Student Dashboard Script (Tailwind UI based)
 // =============================================================
 
-// supabase client initialization
-const SUPABASE_URL = 'https://asccuwumidjqcwdcmsrp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzY2N1d3VtaWRqcWN3ZGNtc3JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyNjk1OTQsImV4cCI6MjA2Njg0NTU5NH0.eqmYPNdSoIjvAxKFlR4c-xQzW4FomEWSEe7nv-X4mFU';
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import * as db from './database-functions.js';
 
 // Category metadata - defines all the groups and items students can upload evidence for
 // each group has an id, label, color (for UI), and a list of items
@@ -355,14 +352,9 @@ if (closeMobileNavBtn){ closeMobileNavBtn.addEventListener('click', ()=>toggleMo
 async function loadStats() {
   // simple placeholder aggregated counts
   const started = performance.now();
-  
+
   // fetch all uploads for this student
-  const { data, error } = await supabaseClient
-    .from('Uploads')
-    .select('*')
-    .eq('user_id', userId)
-    .single();
-  
+  const { data, error } = await db.fetchStudentUploads2(userId);
   if (error) return;
   
   // for each category group, count how many items have uploads
@@ -445,11 +437,7 @@ async function renderUploads(){
   uploadPreview.innerHTML = '<p class="text-xs text-gray-500">Loading...</p>';
   
   // fetch the specific column for this item
-  const { data, error } = await supabaseClient
-    .from('Uploads')
-    .select(currentItemId)
-    .eq('user_id', userId)
-    .single();
+  const { data, error } = await db.fetchSpecificStudentUploads2(userId, currentItemId);
   
   // if fetch fails, show error
   if (error){
@@ -483,14 +471,8 @@ async function renderUploads(){
     
     // try to fetch a custom name for this link
     let display = `Item ${i+1}`;
-    const { data: linkNameData } = await supabaseClient
-      .from('LinkNames')
-      .select('name')
-      .eq('link', url)
-      .eq('user_id', userId)
-      .eq('column_name', currentItemId)
-      .maybeSingle();
-    
+    const linkNameData = await db.fetchSpecificLinkName(url, userId, currentItemId);
+
     // use custom name if available
     if (linkNameData?.name) display = linkNameData.name;
     link.textContent = display;
@@ -511,18 +493,10 @@ async function renderUploads(){
 // handles deleting a single upload/link
 async function handleDelete(url){
   // first delete the custom link name if one exists
-  await supabaseClient.from('LinkNames')
-    .delete()
-    .eq('link', url)
-    .eq('user_id', userId)
-    .eq('column_name', currentItemId);
+  await db.deleteSpecificLinkName(url, userId, currentItemId);
 
   // fetch current list of URLs
-  const { data: rowData, error } = await supabaseClient
-    .from('Uploads')
-    .select(currentItemId)
-    .eq('user_id', userId)
-    .single();
+  const { data: rowData, error } = await db.fetchSpecificStudentUploads2(userId, currentItemId);
   
   if (error) {
     notify('Delete failed','error');
@@ -534,7 +508,7 @@ async function handleDelete(url){
   const updated = existing.filter(l=>l!==url);
   
   // update the database with the new array
-  await supabaseClient.from('Uploads').update({ [currentItemId]: updated }).eq('user_id', userId);
+  await db.updateSpecificStudentUploads2(userId, currentItemId, updated);
   
   // show success and refresh the UI
   notify('Deleted');
@@ -579,11 +553,7 @@ fileInput.addEventListener('change', async (e)=>{
   if (files.length===0) return;
   
   // get existing uploads for this item
-  const { data: rowData, error } = await supabaseClient
-    .from('Uploads')
-    .select(currentItemId)
-    .eq('user_id', userId)
-    .single();
+  const { data: rowData, error } = await db.fetchSpecificStudentUploads2(userId, currentItemId);
   
   if (error) {
     notify('Fetch failed','error');
@@ -599,14 +569,14 @@ fileInput.addEventListener('change', async (e)=>{
     const path = `${Date.now()}-${file.name}`;
     
     // upload to storage bucket
-    const { error: upErr } = await supabaseClient.storage.from('files-and-links').upload(path, file);
+    const upErr = await db.uploadFileToStorage(path, file);
     if (upErr){
       notify('Upload failed','error');
       continue; // skip this file and try the next one
     }
     
     // get public URL for the uploaded file
-    const { data: pub } = supabaseClient.storage.from('files-and-links').getPublicUrl(path);
+    const pub = await db.fetchPublicUrlFromStorage(path);
     newUrls.push(pub.publicUrl);
   }
   
@@ -614,7 +584,7 @@ fileInput.addEventListener('change', async (e)=>{
   const updated = [...existing, ...newUrls];
   
   // update database with new list of URLs
-  await supabaseClient.from('Uploads').update({ [currentItemId]: updated }).eq('user_id', userId);
+  await db.updateSpecificStudentUploads2(userId, currentItemId, updated);
 
   // Insert custom link names based on modal inputs
   const baseNamePart1 = quantityWrapper.classList.contains('hidden')? '' : quantityInput.value;
@@ -623,12 +593,7 @@ fileInput.addEventListener('change', async (e)=>{
   for (let i=0;i<newUrls.length;i++){
     // create descriptive name: "1. internship-one IIT"
     const linkName = `${existing.length + i + 1}. ${currentItemId} ${baseNamePart1} ${baseNamePart2}`.trim();
-    await supabaseClient.from('LinkNames').insert({
-      name: linkName,
-      link: newUrls[i],
-      user_id: userId,
-      column_name: currentItemId
-    });
+    await db.createNewLinkName(linkName, newUrls[i], userId, currentItemId);
   }
   
   // show success and refresh UI
@@ -650,11 +615,7 @@ linkSubmit.addEventListener('click', async ()=>{
   }
   
   // fetch existing URLs for this item
-  const { data: rowData, error } = await supabaseClient
-    .from('Uploads')
-    .select(currentItemId)
-    .eq('user_id', userId)
-    .single();
+  const { data: rowData, error } = await db.fetchSpecificStudentUploads2(userId, currentItemId);
   
   if (error) {
     notify('Fetch failed','error');
@@ -673,7 +634,7 @@ linkSubmit.addEventListener('click', async ()=>{
   existing.push(link);
   
   // update database with new URL
-  await supabaseClient.from('Uploads').update({ [currentItemId]: existing }).eq('user_id', userId);
+  await db.updateSpecificStudentUploads2(userId, currentItemId, existing);
 
   // create descriptive link name from modal inputs
   const baseNamePart1 = quantityWrapper.classList.contains('hidden')? '' : quantityInput.value;
@@ -681,12 +642,7 @@ linkSubmit.addEventListener('click', async ()=>{
   const linkName = `${existing.length}. ${currentItemId} ${baseNamePart1} ${baseNamePart2}`.trim();
   
   // store link name in separate table
-  await supabaseClient.from('LinkNames').insert({
-    name: linkName,
-    link,
-    user_id: userId,
-    column_name: currentItemId
-  });
+  await db.createNewLinkName(linkName, link, userId, currentItemId);
   
   // show success and refresh UI
   notify('Link saved','success');

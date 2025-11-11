@@ -1,7 +1,4 @@
-// supabase client initialization
-const SUPABASE_URL = 'https://asccuwumidjqcwdcmsrp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzY2N1d3VtaWRqcWN3ZGNtc3JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyNjk1OTQsImV4cCI6MjA2Njg0NTU5NH0.eqmYPNdSoIjvAxKFlR4c-xQzW4FomEWSEe7nv-X4mFU';
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import * as db from './database-functions.js';
 
 // maps groups to their items (refer the marking sheet B)
 const CATEGORY_GROUPS = [
@@ -249,10 +246,7 @@ async function loadStudents(){
   studentSelect.innerHTML = '<option value="" disabled selected>Select Student</option>';
   
   // fetch all students whose admin field matches this admin's ID
-  const { data, error } = await supabaseClient
-    .from('Users')
-    .select('id,name,email')
-    .eq('admin', adminId);
+  const { data, error } = await db.fetchUsersUsingAdminId(adminId);
   
   // if there's an error fetching students, show a notification and bail out
   if (error){ notify('Student fetch failed','error'); return; }
@@ -303,15 +297,12 @@ async function selectItem(id){
 
 // fetches and displays the uploads (links) for the currently selected item
 async function renderUploads(){
+  
   // show skeleton loader while fetching
   uploadPreview.innerHTML = buildListSkeleton(5);
   
   // fetch the specific column (item) from the Uploads table for this student
-  const { data, error } = await supabaseClient
-    .from('Uploads')
-    .select(currentItemId)
-    .eq('user_id', selectedStudentId)
-    .single();
+  const { data, error } = await db.fetchSpecificStudentUploads2(selectedStudentId, currentItemId);
   
   // if there's an error, show an error message
   if (error){ uploadPreview.innerHTML='<p class="text-xs text-red-500">Failed to load.</p>'; return; }
@@ -336,14 +327,7 @@ async function renderUploads(){
     let display=`Item ${i+1}`;
     
     // try to get a custom name for this link from the LinkNames table
-    const { data: linkNameData } = await supabaseClient
-      .from('LinkNames')
-      .select('name')
-      .eq('link', url)
-      .eq('user_id', selectedStudentId)
-      .eq('column_name', currentItemId)
-      .maybeSingle();
-    
+    const { data: linkNameData } = await db.fetchSpecificLinkName(url, selectedStudentId, currentItemId);
     // if a custom name exists, use it
     if (linkNameData?.name) display = linkNameData.name;
     a.textContent=display;
@@ -362,10 +346,10 @@ async function renderUploads(){
 // handles deleting a link/upload from the database
 async function handleDelete(url){
   // first, delete any custom name for this link from LinkNames table
-  await supabaseClient.from('LinkNames').delete().eq('link', url).eq('user_id', selectedStudentId).eq('column_name', currentItemId);
+  await db.deleteSpecificLinkName(url, selectedStudentId, currentItemId);
   
   // fetch the current array of links for this item
-  const { data, error } = await supabaseClient.from('Uploads').select(currentItemId).eq('user_id', selectedStudentId).single();
+  const { data, error } = await db.fetchSpecificStudentUploads2(selectedStudentId, currentItemId);
   if (error) { notify('Delete failed','error'); return; }
   
   // filter out the deleted URL from the array
@@ -373,7 +357,7 @@ async function handleDelete(url){
   const updated = existing.filter(l=>l!==url);
   
   // update the database with the new array (without the deleted URL)
-  await supabaseClient.from('Uploads').update({ [currentItemId]: updated }).eq('user_id', selectedStudentId);
+  await db.updateSpecificStudentUploads2(selectedStudentId, currentItemId, updated);
   
   // show success message and refresh the uploads list
   notify('Deleted');
@@ -383,11 +367,7 @@ async function handleDelete(url){
 // loads the existing marks for a category and displays them in the input field
 async function loadExistingMarks(parent){
   // fetch the marks for this parent category (e.g., "basics", "github-profile")
-  const { data, error } = await supabaseClient
-    .from('UploadsMarks')
-    .select(parent)
-    .eq('user_id', selectedStudentId)
-    .single();
+  const { data, error } = await db.fetchMarksParent(selectedStudentId, parent);
   
   // if there's an error, clear the input field
   if (error){ marksInput.value=''; return; }
@@ -420,10 +400,7 @@ async function saveMarks(){
   if (val > PARENT_MAX[parent]) { notify('Exceeds max','warn'); marksInput.value=PARENT_MAX[parent]; return; }
   
   // update the database with the new marks
-  const { error } = await supabaseClient
-    .from('UploadsMarks')
-    .update({ [parent]: val })
-    .eq('user_id', selectedStudentId);
+  const { error } = await db.updateMarksForUser(selectedStudentId, { [parent]: val });
   
   // if there's an error, show a notification
   if (error){ notify('Save failed','error'); return; }
@@ -441,21 +418,13 @@ async function exportCSV(){
   if(!selectedStudentId){ notify('Pick student','warn'); return; }
   
   // fetch all marks for this student
-  const { data: marksData, error } = await supabaseClient
-    .from('UploadsMarks')
-    .select('*')
-    .eq('user_id', selectedStudentId)
-    .single();
+  const { data: marksData, error } = await db.fetchMarksForUser(selectedStudentId);
   
   // if there's an error, bail out
   if (error){ notify('Export failed','error'); return; }
   
   // fetch the student's name to use in the filename
-  const { data: studentData } = await supabaseClient
-    .from('Users')
-    .select('name')
-    .eq('id', selectedStudentId)
-    .maybeSingle();
+  const { data: studentData } = await db.fetchUserById(selectedStudentId);
   
   const studentName = studentData?.name || 'student';
   
@@ -488,20 +457,14 @@ if (exportAllBtn){
 // exports marks for ALL students belonging to this admin as a single CSV file
 async function exportAllCSV(){
   // Fetch all students belonging to this admin
-  const { data: students, error: stErr } = await supabaseClient
-    .from('Users')
-    .select('id,name,email')
-    .eq('admin', adminId);
+  const { data: students, error: stErr } = await db.fetchUsersUsingAdminId(adminId);
   
   if (stErr){ notify('Failed to fetch students','error'); return; }
   if (!students || students.length===0){ notify('No students to export','warn'); return; }
   
   // Fetch marks for all students
   const ids = students.map(s=>s.id);
-  const { data: marksRows, error: mErr } = await supabaseClient
-    .from('UploadsMarks')
-    .select('*')
-    .in('user_id', ids);
+  const { data: marksRows, error: mErr } = await db.fetchMarksForUsers(ids);
   
   if (mErr){ notify('Failed to fetch marks','error'); return; }
   
@@ -581,11 +544,7 @@ async function loadSelectedStats(){
   const started = performance.now();
   
   // fetch all uploads for this student
-  const { data, error } = await supabaseClient
-    .from('Uploads')
-    .select('*')
-    .eq('user_id', selectedStudentId)
-    .maybeSingle();
+  const { data, error } = await db.fetchStudentUploads2(selectedStudentId);
   
   if (error){ adminStatsGrid.innerHTML=''; notify('Stats load failed','error'); return; }
   
@@ -619,10 +578,7 @@ async function loadOverallStats(){
   const started = performance.now();
   
   // fetch all students belonging to this admin
-  const { data: students, error: stErr } = await supabaseClient
-    .from('Users')
-    .select('id')
-    .eq('admin', adminId);
+  const { data: students, error: stErr } = await db.fetchUsersUsingAdminId(adminId);
   
   if (stErr){ adminStatsGrid.innerHTML=''; notify('Stats load failed','error'); return; }
   
@@ -630,10 +586,7 @@ async function loadOverallStats(){
   if (ids.length===0){ adminStatsGrid.innerHTML=''; notify('No students','warn'); return; }
   
   // fetch uploads for all students
-  const { data: uploadsRows, error: upErr } = await supabaseClient
-    .from('Uploads')
-    .select('*')
-    .in('user_id', ids);
+  const { data: uploadsRows, error: upErr } = await db.fetchUploadsForUsers(ids);
   
   if (upErr){ adminStatsGrid.innerHTML=''; notify('Stats load failed','error'); return; }
   

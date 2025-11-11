@@ -1,7 +1,4 @@
-// supabase client initialization
-const SUPABASE_URL = 'https://asccuwumidjqcwdcmsrp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzY2N1d3VtaWRqcWN3ZGNtc3JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyNjk1OTQsImV4cCI6MjA2Njg0NTU5NH0.eqmYPNdSoIjvAxKFlR4c-xQzW4FomEWSEe7nv-X4mFU';
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import * as db from './database-functions.js';
 
 // popup notification (tailwind-based)
 function popUpNotification(message, type = 'error') {
@@ -56,11 +53,7 @@ window.handleCredentialResponse = async function(response) {
 		localStorage.setItem('userPicture', picture);
 
 		// checks if whoever logs in is an admin
-		const { data: adminData, error: adminError } = await supabaseClient
-			.from('Admins')
-			.select('email,id')
-			.eq('email', email)
-			.maybeSingle();
+		const { data: adminData, error: adminError } = await db.fetchAdminIdUsingEmail(email);
 
 		if (adminError) {
 			console.warn('Admin check error.', adminError);
@@ -75,11 +68,7 @@ window.handleCredentialResponse = async function(response) {
 
 		// we only reach here if the user is not an admin (then they are a user)
 		// check if user exists
-		const { data: selectData, error: selectErr } = await supabaseClient
-			.from('Users')
-			.select('*')
-			.eq('name', name)
-			.eq('email', email);
+		const { data: selectData, error: selectErr } = await db.fetchStudentUsingNameAndEmail(name, email);
 
 		// error handling again
 		if (selectErr) {
@@ -91,10 +80,7 @@ window.handleCredentialResponse = async function(response) {
 		// if no user found, create new user
 		if (!selectData || selectData.length === 0) {
 			// insert new user
-			const { data: insertUsers, error: insertUserErr } = await supabaseClient
-				.from('Users')
-				.insert([{ name, email }])
-				.select();
+			const { data: insertUsers, error: insertUserErr } = await db.insertNewUser(name, email);
 
 			if (insertUserErr) {
 				console.error('User insert error.', insertUserErr);
@@ -105,18 +91,13 @@ window.handleCredentialResponse = async function(response) {
 			// store userId in localStorage
 			const insertedId = insertUsers[0].id;
 			localStorage.setItem('userId', insertedId);
-
-			// create uploads row (will contain the things the user uploads)
-			const { error: uploadsErr } = await supabaseClient
-				.from('Uploads')
-				.insert([{ user_id: insertedId }]);
-			if (uploadsErr) console.warn('Uploads insert warning.', uploadsErr);
-
-			// Create UploadsMarks row (will contain the marks for uploads, the marks will be entered by an admin)
-			const { error: uploadsMarksErr } = await supabaseClient
-				.from('UploadsMarks')
-				.insert([{ user_id: insertedId }]);
-			if (uploadsMarksErr) console.warn('UploadsMarks insert warning.', uploadsMarksErr);
+			
+			const { error: initErr } = await db.initializeUserRowInNecessaryTables(insertedId);
+			if (initErr) {
+				console.error('Initialization error.', initErr);
+				popUpNotification('Could not initialize user data.');
+				return;
+			}
 
 			// since it's a new user, redirect to profile setup
 			popUpNotification('Welcome! Redirecting...', 'success');

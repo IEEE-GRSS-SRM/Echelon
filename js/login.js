@@ -62,7 +62,7 @@ window.handleCredentialResponse = async function(response) {
 		// if a record is found, redirect to admin dashboard
 		if (adminData) {
 			localStorage.setItem('userId', adminData.id);
-			window.location.href = '../html/admin-dashboard.html';
+			window.location.href = '../html/admin-dashboard-2.html';
 			return;
 		}
 
@@ -107,13 +107,13 @@ window.handleCredentialResponse = async function(response) {
 			return;
 		}
 
-		// existing user, store userId and redirect to student dashboard
+		// existing user, store userId and redirect to profile setup
 		const userId = selectData[0].id;
 		localStorage.setItem('userId', userId);
 
 		popUpNotification('Login successful', 'success');
 		setTimeout(() => {
-			window.location.href = '../html/student-dashboard.html';
+			window.location.href = '../html/profile-setup.html';
 		}, 400);
 
 	} catch (err) {

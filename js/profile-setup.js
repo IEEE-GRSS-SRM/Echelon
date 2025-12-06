@@ -25,12 +25,33 @@ const adminStatus = document.getElementById('admin-status');
 const uploadsStatus = document.getElementById('uploads-status');
 const progressBar = document.getElementById('progress-bar');
 const progressText = document.getElementById('progress-text');
+const sheetSelect = document.getElementById('sheet-select');
 
 // User data from localStorage (populated during login)
 const userName = localStorage.getItem('userName');
 const userEmail = localStorage.getItem('userEmail');
 const userPicture = localStorage.getItem('userPicture');
 const userId = localStorage.getItem('userId');
+
+let adminSelf = false;
+let selectedSheet = localStorage.getItem('selectedSheet') || '1';
+
+const sheetIdToName = {
+  '1': 'Profile Information Form',
+  '2': 'Evidence Uploads with Marking',
+  '3': 'Achievements & Certifications'
+}
+
+if (selectedSheet == null) {
+  sheetSelect.innerHTML = `
+    <option value="1">Profile Information Form</option>
+    <option value="2">Evidence Uploads with Marking</option>
+    <option value="3">Achievements & Certifications</option>`;
+}
+
+else {
+  sheetSelect.value = selectedSheet;
+}
 
 // notification utility - displays a popup message at the top of the screen
 function notify(msg,type='info') {
@@ -54,7 +75,7 @@ function notify(msg,type='info') {
 }
 
 // checks if the user is logged in, redirects to login page if not
-function ensureAuth(){ if(!userId){ window.location.href='../html/login_page.html'; }}
+function ensureAuth(){ if(!userId){ window.location.href='../html/login-page.html'; }}
 
 // populates the user card with name, email, and profile picture
 function populateUserCard(){
@@ -180,53 +201,65 @@ adminSearch.addEventListener('input',()=>{
 
 // handles the continue button click - assigns the selected admin to the student
 async function handleContinue(){
-  const selectedEmail = adminSelect.value;
-  
-  // validate that an admin is selected (unless user is already an admin going to dashboard)
-  if(!selectedEmail && !(continueBtn.textContent==='Go to Dashboard')){ notify('Choose an admin','warn'); return; }
-  
-  // disable button and show loading spinner
-  continueBtn.disabled = true; continueSpinner.classList.remove('hidden'); continueText.textContent='Saving';
-  
-  try {
-    // first, fetch the admin's ID from their email
-    const { data: adminRow, error: adminError } = await supabaseClient
-      .from('Admins')
-      .select('id')
-      .eq('email', selectedEmail)
-      .maybeSingle();
+
+  if (!adminSelf) {
+    console.log('Assigning admin to student...');
+    const selectedEmail = adminSelect.value;
     
-    // if admin not found, show error
-    if (adminError || !adminRow){ notify('Admin not found','error'); return; }
+    // validate that an admin is selected (unless user is already an admin going to dashboard)
+    if(!selectedEmail && !(continueBtn.textContent==='Go to Dashboard')){ notify('Choose an admin','warn'); return; }
     
-    // update the student's record with the selected admin's ID
-    const { error: updateError } = await supabaseClient
-      .from('Users')
-      .update({ admin: adminRow.id })
-      .eq('id', userId);
+    // disable button and show loading spinner
+    continueBtn.disabled = true; continueSpinner.classList.remove('hidden'); continueText.textContent='Saving';
     
-    // if update failed, show error
-    if (updateError){ notify('Failed to assign admin','error'); return; }
-    
-    // success! update UI and redirect to student dashboard
-    notify('Admin assigned','success');
-    adminStatus.textContent = 'Assigned';
-    adminStatus.className='font-medium text-green-600';
-    updateProgress();
-    
-    // wait a bit before redirecting so user can see the success message
-    setTimeout(()=>{ window.location.href='../html/student-dashboard.html'; },600);
-  } finally {
-    // always hide spinner and restore button text (unless assignment succeeded)
-    continueSpinner.classList.add('hidden');
-    continueText.textContent='Continue';
-    if (adminStatus.textContent !== 'Assigned') continueBtn.disabled = false;
+    try {
+      // first, fetch the admin's ID from their email
+      const { data: adminRow, error: adminError } = await supabaseClient
+        .from('Admins')
+        .select('id')
+        .eq('email', selectedEmail)
+        .maybeSingle();
+      
+      // if admin not found, show error
+      if (adminError || !adminRow){ notify('Admin not found','error'); return; }
+      
+      // update the student's record with the selected admin's ID
+      const { error: updateError } = await supabaseClient
+        .from('Users')
+        .update({ admin: adminRow.id })
+        .eq('id', userId);
+      
+      // if update failed, show error
+      if (updateError){ notify('Failed to assign admin','error'); return; }
+      
+      // success! update UI and redirect to student dashboard
+      notify('Admin assigned','success');
+      adminStatus.textContent = 'Assigned';
+      adminStatus.className='font-medium text-green-600';
+      updateProgress();
+      
+      // wait a bit before redirecting so user can see the success message
+    setTimeout(()=>{
+        window.location.href=`../html/student-dashboard-${selectedSheet}.html`; 
+      },600);
+
+    } finally {
+      // always hide spinner and restore button text (unless assignment succeeded)
+      continueSpinner.classList.add('hidden');
+      continueText.textContent='Continue';
+      if (adminStatus.textContent !== 'Assigned') continueBtn.disabled = false;
+    }
+  }
+  else {
+    setTimeout(()=>{
+        window.location.href=`../html/admin-dashboard-${selectedSheet}.html`; 
+      },600);
   }
 }
 
 // hook up the continue button and logout button to their respective handlers
 continueBtn.addEventListener('click', handleContinue);
-logoutBtn.addEventListener('click', ()=>{ localStorage.clear(); window.location.href='../html/login_page.html'; });
+logoutBtn.addEventListener('click', ()=>{ localStorage.clear(); window.location.href='../html/login-page.html'; });
 
 // checks if the student already has an admin assigned (for returning users)
 async function checkExisting(){
@@ -330,6 +363,11 @@ function updateInfoCard(isAdmin) {
   }
 }
 
+sheetSelect.addEventListener('change', (e) => {
+  selectedSheet = e.target.value;
+  localStorage.setItem('selectedSheet', selectedSheet);
+});
+
 // initialization function that runs when the page loads
 async function init(){
   // make sure the user is logged in
@@ -339,12 +377,14 @@ async function init(){
   populateUserCard();
   
   // Detect if current user is an Admin; if so, show admin-specific view
-  const { data: adminSelf } = await supabaseClient
+  const { data: adminSelfData } = await supabaseClient
     .from('Admins')
     .select('email')
     .eq('email', userEmail)
     .maybeSingle();
   
+  adminSelf = adminSelfData;
+
   // if this user is an admin, customize the page for them
   if (adminSelf){
     // Show admin-specific information and quick stats
@@ -384,7 +424,6 @@ async function init(){
     // enable the continue button and change it to go to admin dashboard
     continueBtn.disabled=false;
     continueBtn.textContent='Go to Dashboard';
-    continueBtn.addEventListener('click', ()=>{ window.location.href='../html/admin-dashboard.html'; });
     
     // exit early - no need to load student-specific data
     return;

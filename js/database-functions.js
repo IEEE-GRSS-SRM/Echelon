@@ -33,18 +33,62 @@ export async function insertNewUser(name, email) {
 
 export async function initializeUserRowInNecessaryTables(user_id) {
 
-    const { data: dataUploads, error: errorUploads } = await supabaseClient
+    // check if row with user_id already exists in table Uploads2
+    let { data: existingUploads2, error: existingUploads2Err } = await supabaseClient
         .from('Uploads2')
-        .insert({ user_id })
-        .select();
+        .select('user_id')
+        .eq('user_id', user_id)
+        .single();
 
-    const { data: dataUploadsMarks, error: errorUploadsMarks } = await supabaseClient
+    if (existingUploads2Err) {
+        const { data: dataUploads2, error: errorUploads2 } = await supabaseClient
+            .from('Uploads2')
+            .insert({ user_id })
+            .select();
+        
+        if (!errorUploads2) {
+            existingUploads2Err = null; // clear error if insertion was successful
+        }
+    }
+
+    // check if row with user_id already exists in table UploadsMarks2
+    let { data: existingUploadsMarks2, error: existingUploadsMarks2Err } = await supabaseClient
         .from('UploadsMarks2')
-        .insert({ user_id })
-        .select();
+        .select('user_id')
+        .eq('user_id', user_id)
+        .single();
 
-    // return a merged version of both errors
-    return { error: errorUploads || errorUploadsMarks };
+    if (existingUploadsMarks2Err) {
+        const { data: dataUploadsMarks2, error: errorUploadsMarks2 } = await supabaseClient
+            .from('UploadsMarks2')
+            .insert({ user_id })
+            .select();
+
+        if (!errorUploadsMarks2) {
+            existingUploadsMarks2Err = null; // clear error if insertion was successful
+        }
+    }
+
+    // check if row with user_id already exists in table Uploads1
+    let { data: existingUploads1, error: existingUploads1Err } = await supabaseClient
+        .from('Uploads1')
+        .select('user_id')
+        .eq('user_id', user_id)
+        .single();
+
+    if (existingUploads1Err) {
+        const { data: dataUploads1, error: errorUploads1 } = await supabaseClient
+            .from('Uploads1')
+            .insert({ 'user_id': user_id })
+            .select();
+        
+        if (!errorUploads1) {
+            existingUploads1Err = null; // clear error if insertion was successful
+        }
+    }
+
+    // return merged errors if any (could be null)
+    return { error: existingUploads2Err || existingUploadsMarks2Err || existingUploads1Err };
 
 }
 
@@ -75,6 +119,18 @@ export async function fetchStudentUploads2(userId) {
 
 }
 
+export async function fetchStudentUploads1(userId) {
+
+    const { data, error } = await supabaseClient
+        .from('Uploads1')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+    return { data, error };
+
+}
+
 export async function fetchSpecificStudentUploads2(userId, columnName) {
 
   const { data, error } = await supabaseClient
@@ -84,6 +140,26 @@ export async function fetchSpecificStudentUploads2(userId, columnName) {
     .single();
 
   return { data, error };
+
+}
+
+export async function fetchSpecificStudentUploads1(userId, columnName) {
+
+  const { data, error } = await supabaseClient
+    .from('Uploads1')
+    .select(columnName)
+    .eq('user_id', userId)
+    .single();
+
+  return { data, error };
+
+}
+
+export async function updateSpecificStudentUploads1(userId, columnName, newValue) {
+
+    await supabaseClient.from('Uploads1')
+    .update({ [columnName]: newValue })
+    .eq('user_id', userId);
 
 }
 
@@ -119,11 +195,17 @@ export async function deleteSpecificLinkName(url, userId, columnName) {
 
 }
 
-export async function uploadFileToStorage(file) {
+export async function uploadFileToStorage(path, file) {
 
-    const path = `${Date.now()}-${file.name}`;
     const { error: upErr } = await supabaseClient.storage.from('files-and-links').upload(path, file);
     return upErr
+
+}
+
+export async function deleteFileFromStorage(path) {
+
+    const { error: delErr } = await supabaseClient.storage.from('files-and-links').remove([path]);
+    return delErr;
 
 }
 

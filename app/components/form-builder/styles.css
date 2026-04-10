@@ -1,0 +1,24 @@
+.overlay {
+    backdrop-filter: blur(5px);
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    overflow-y: hidden;
+}
+
+.form-unit {
+    padding: 10px 10px;
+    margin-bottom: 20px;
+    outline: 2px solid gray;
+    width: 100%;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+}
